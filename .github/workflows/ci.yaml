@@ -4,7 +4,7 @@ on:
     tags:
       - "v*.*.*"
     branches:
-      - main
+      - quickfix
   pull_request:
 
 concurrency:
