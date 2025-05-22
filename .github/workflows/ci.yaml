@@ -1,11 +1,11 @@
 name: CI
 on:
   push:
-    tags:
-      - "v*.*.*"
     branches:
-      - quickfix
+      - "**"
   pull_request:
+    branches:
+      - "**"
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
