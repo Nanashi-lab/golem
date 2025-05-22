@@ -516,7 +516,7 @@ paths:
         binding-type: default
         component-name: {unique_component_name}
         component-version: 0
-        response: |-
+        response: |
           let worker = instance("{unique_component_name}");
           let result = worker.get-cart-contents();
           let status: u64 = 200;
@@ -533,7 +533,7 @@ paths:
           description: Success
       x-golem-api-gateway-binding:
         binding-type: cors-preflight
-        response: |-
+        response: |
           {{
             Access-Control-Allow-Headers: "Content-Type, Authorization",
             Access-Control-Allow-Methods: "GET, POST, PUT, DELETE, OPTIONS",
@@ -656,7 +656,7 @@ async fn create_openapi_json_definition(deps: &EnvBasedTestDependencies) {
           "binding-type": "default",
           "component-name": "{unique_component_name}",
           "component-version": 0,
-          "response": "let worker = instance(\"{unique_component_name}\");\nlet result = worker.get-cart-contents();\nlet status: u64 = 200;\n{{\n  headers: {{\n    {{ContentType: \"json\", userid: \"foo\"}}\n  }},\n  body: \"Item added\",\n  status: status\n}}"
+          "response": "let worker = instance(\"{unique_component_name}\");\\nlet result = worker.get-cart-contents();\\nlet status: u64 = 200;\\n{{\\n  headers: {{\\n    {{ContentType: \\"json\\", userid: \\"foo\\"}}\\n  }},\\n  body: \\"Item added\\",\\n  status: status\\n}}"
         }}
       }},
       "options": {{
@@ -667,7 +667,7 @@ async fn create_openapi_json_definition(deps: &EnvBasedTestDependencies) {
         }},
         "x-golem-api-gateway-binding": {{
           "binding-type": "cors-preflight",
-          "response": "{{\n  Access-Control-Allow-Headers: \"Content-Type, Authorization\",\n  Access-Control-Allow-Methods: \"GET, POST, PUT, DELETE, OPTIONS\",\n  Access-Control-Allow-Origin: \"*\"\n}}"
+          "response": "{{\\n  Access-Control-Allow-Headers: \\"Content-Type, Authorization\\",\\n  Access-Control-Allow-Methods: \\"GET, POST, PUT, DELETE, OPTIONS\\",\\n  Access-Control-Allow-Origin: \\"*\\"\\n}}"
         }}
       }}
     }}
