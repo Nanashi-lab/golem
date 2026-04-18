@@ -1,10 +1,25 @@
 import { describe } from 'vitest';
-import { AgentType } from 'golem:agent/common@1.5.0';
 import { AgentTypeRegistry } from '../src/internal/registry/agentTypeRegistry';
-import { ComplexHttpAgentClassName, SimpleHttpAgentClassName } from './testUtils';
+import {
+  AllHttpMethodsAgentClassName,
+  ComplexHttpAgentClassName,
+  SimpleHttpAgentClassName,
+} from './testUtils';
 import { AgentMethodRegistry } from '../src/internal/registry/agentMethodRegistry';
 
 describe('Http Agent class', () => {
+  function getHttpEndpoint(agentClassName: { value: string }, methodName: string) {
+    const agentMethod = AgentMethodRegistry.get(agentClassName.value)?.get(methodName);
+
+    if (!agentMethod?.httpEndpoint?.[0]) {
+      throw new Error(
+        `${agentClassName.value}.${methodName} method not found in AgentMethodRegistry`,
+      );
+    }
+
+    return agentMethod.httpEndpoint[0];
+  }
+
   it('should register HTTP mount details with only mount', () => {
     const simpleHttpAgent = AgentTypeRegistry.get(SimpleHttpAgentClassName);
 
@@ -197,7 +212,7 @@ describe('Http Agent class', () => {
     expect(complexHttpAgentMetadata.httpEndpoint).toBeDefined();
     expect(complexHttpAgentMetadata.httpEndpoint).toEqual([
       {
-        httpMethod: { tag: 'custom', val: 'patch' },
+        httpMethod: { tag: 'custom', val: 'PROPFIND' },
         authDetails: undefined,
         queryVars: [
           {
@@ -278,5 +293,102 @@ describe('Http Agent class', () => {
         ],
       },
     ]);
+  });
+
+  it('should register all standard HTTP methods as native variants', () => {
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'getMethod')).toEqual({
+      httpMethod: { tag: 'get' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'get' }],
+    });
+
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'headMethod')).toEqual({
+      httpMethod: { tag: 'head' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'head' }],
+    });
+
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'postMethod')).toEqual({
+      httpMethod: { tag: 'post' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'post' }],
+    });
+
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'putMethod')).toEqual({
+      httpMethod: { tag: 'put' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'put' }],
+    });
+
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'deleteMethod')).toEqual({
+      httpMethod: { tag: 'delete' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'delete' }],
+    });
+
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'connectMethod')).toEqual({
+      httpMethod: { tag: 'connect' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'connect' }],
+    });
+
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'optionsMethod')).toEqual({
+      httpMethod: { tag: 'options' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'options' }],
+    });
+
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'traceMethod')).toEqual({
+      httpMethod: { tag: 'trace' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'trace' }],
+    });
+
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'patchMethod')).toEqual({
+      httpMethod: { tag: 'patch' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [{ tag: 'literal', val: 'patch' }],
+    });
+  });
+
+  it('should keep custom methods distinct from standard methods', () => {
+    expect(getHttpEndpoint(AllHttpMethodsAgentClassName, 'propfindMethod')).toEqual({
+      httpMethod: { tag: 'custom', val: 'PROPFIND' },
+      authDetails: undefined,
+      queryVars: [],
+      corsOptions: { allowedPatterns: [] },
+      headerVars: [],
+      pathSuffix: [
+        { tag: 'literal', val: 'propfind' },
+        { tag: 'path-variable', val: { variableName: 'name' } },
+      ],
+    });
   });
 });

@@ -24,7 +24,7 @@ mod tests {
     };
     use golem_rust::agentic::{Principal, create_webhook};
     use golem_rust::golem_agentic::golem::agent::common::{
-        AgentConfigDeclaration, AgentConfigSource, AgentMode, AgentType, ElementValue,
+        AgentConfigDeclaration, AgentConfigSource, AgentMode, AgentType, ElementValue, HttpMethod,
         Snapshotting, SnapshottingConfig,
     };
     use golem_rust::value_and_type::IntoValue;
@@ -793,6 +793,112 @@ mod tests {
         fn greet(&self, name: String) -> String {
             format!("Hello, {}!", name)
         }
+    }
+
+    #[agent_definition(mount = "/http-methods/{agent-type}")]
+    trait AllHttpMethodsAgent {
+        fn new() -> Self;
+
+        #[endpoint(get = "/get")]
+        fn get_method(&self);
+
+        #[endpoint(head = "/head")]
+        fn head_method(&self);
+
+        #[endpoint(post = "/post")]
+        fn post_method(&self);
+
+        #[endpoint(put = "/put")]
+        fn put_method(&self);
+
+        #[endpoint(delete = "/delete")]
+        fn delete_method(&self);
+
+        #[endpoint(connect = "/connect")]
+        fn connect_method(&self);
+
+        #[endpoint(options = "/options")]
+        fn options_method(&self);
+
+        #[endpoint(trace = "/trace")]
+        fn trace_method(&self);
+
+        #[endpoint(patch = "/patch")]
+        fn patch_method(&self);
+    }
+
+    struct AllHttpMethodsAgentImpl;
+
+    #[agent_implementation]
+    impl AllHttpMethodsAgent for AllHttpMethodsAgentImpl {
+        fn new() -> Self {
+            AllHttpMethodsAgentImpl
+        }
+
+        fn get_method(&self) {}
+
+        fn head_method(&self) {}
+
+        fn post_method(&self) {}
+
+        fn put_method(&self) {}
+
+        fn delete_method(&self) {}
+
+        fn connect_method(&self) {}
+
+        fn options_method(&self) {}
+
+        fn trace_method(&self) {}
+
+        fn patch_method(&self) {}
+    }
+
+    #[test]
+    fn test_agent_with_all_http_methods() {
+        use golem_rust::agentic::get_all_agent_types;
+
+        let agent = get_all_agent_types()
+            .into_iter()
+            .find(|a| a.type_name == "AllHttpMethodsAgent")
+            .expect("AllHttpMethodsAgent not found");
+
+        let find_http_method = |method_name: &str| {
+            &agent
+                .methods
+                .iter()
+                .find(|method| method.name == method_name)
+                .unwrap_or_else(|| panic!("method '{method_name}' not found"))
+                .http_endpoint
+                .first()
+                .unwrap_or_else(|| panic!("method '{method_name}' has no HTTP endpoint"))
+                .http_method
+        };
+
+        assert!(matches!(find_http_method("get_method"), &HttpMethod::Get));
+        assert!(matches!(find_http_method("head_method"), &HttpMethod::Head));
+        assert!(matches!(find_http_method("post_method"), &HttpMethod::Post));
+        assert!(matches!(find_http_method("put_method"), &HttpMethod::Put));
+        assert!(matches!(
+            find_http_method("delete_method"),
+            &HttpMethod::Delete
+        ));
+        assert!(matches!(
+            find_http_method("connect_method"),
+            &HttpMethod::Connect
+        ));
+        assert!(matches!(
+            find_http_method("options_method"),
+            &HttpMethod::Options
+        ));
+        assert!(matches!(
+            find_http_method("trace_method"),
+            &HttpMethod::Trace
+        ));
+        assert!(matches!(
+            find_http_method("patch_method"),
+            &HttpMethod::Patch
+        ));
     }
 
     // Auto Injected Principal Compilation Tests

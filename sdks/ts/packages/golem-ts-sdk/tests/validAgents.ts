@@ -582,9 +582,9 @@ class ComplexHttpAgent extends BaseAgent {
     headers: { 'X-Foo': 'location', 'X-Bar': 'name' },
   })
 
-  // Endpoint with custom http method
+  // Endpoint with custom non-standard http method
   @endpoint({
-    custom: { method: 'patch', path: '/greet?l={location}&n={name}' },
+    custom: { method: 'PROPFIND', path: '/greet?l={location}&n={name}' },
   })
   async greetCustom(location: string, name: string): Promise<string> {
     return Promise.resolve(`Hello, ${name}!`);
@@ -606,6 +606,65 @@ class ComplexHttpAgent extends BaseAgent {
   // Endpoint with just root path
   @endpoint({ get: '/' })
   async rootPathFun() {}
+}
+
+@agent({
+  mount: '/http-methods/{agent-type}',
+})
+class AllHttpMethodsAgent extends BaseAgent {
+  constructor() {
+    super();
+  }
+
+  @endpoint({ get: '/get' })
+  async getMethod(): Promise<string> {
+    return Promise.resolve('get');
+  }
+
+  @endpoint({ head: '/head' })
+  async headMethod(): Promise<string> {
+    return Promise.resolve('head');
+  }
+
+  @endpoint({ post: '/post' })
+  async postMethod(): Promise<string> {
+    return Promise.resolve('post');
+  }
+
+  @endpoint({ put: '/put' })
+  async putMethod(): Promise<string> {
+    return Promise.resolve('put');
+  }
+
+  @endpoint({ delete: '/delete' })
+  async deleteMethod(): Promise<string> {
+    return Promise.resolve('delete');
+  }
+
+  @endpoint({ connect: '/connect' })
+  async connectMethod(): Promise<string> {
+    return Promise.resolve('connect');
+  }
+
+  @endpoint({ options: '/options' })
+  async optionsMethod(): Promise<string> {
+    return Promise.resolve('options');
+  }
+
+  @endpoint({ trace: '/trace' })
+  async traceMethod(): Promise<string> {
+    return Promise.resolve('trace');
+  }
+
+  @endpoint({ patch: '/patch' })
+  async patchMethod(): Promise<string> {
+    return Promise.resolve('patch');
+  }
+
+  @endpoint({ custom: { method: 'PROPFIND', path: '/propfind/{name}' } })
+  async propfindMethod(name: string): Promise<string> {
+    return Promise.resolve(name);
+  }
 }
 
 @agent()

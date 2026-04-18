@@ -23,6 +23,15 @@ pub struct ParsedHttpEndpointDetails {
     pub cors_options: Vec<String>,
 }
 
+fn parse_http_method(path: &syn::Path) -> Option<String> {
+    [
+        "get", "head", "post", "put", "delete", "connect", "options", "trace", "patch",
+    ]
+    .into_iter()
+    .find(|method| path.is_ident(method))
+    .map(str::to_string)
+}
+
 pub fn extract_http_endpoints(
     attrs: &[syn::Attribute],
 ) -> syn::Result<Vec<ParsedHttpEndpointDetails>> {
@@ -54,60 +63,68 @@ pub fn extract_http_endpoints(
 
         for item in items {
             match item {
-                syn::Meta::NameValue(nv)
-                    if nv.path.is_ident("get")
-                        || nv.path.is_ident("post")
-                        || nv.path.is_ident("put")
-                        || nv.path.is_ident("delete") =>
-                {
-                    if let syn::Expr::Lit(syn::ExprLit {
-                        lit: syn::Lit::Str(s),
-                        ..
-                    }) = nv.value
-                    {
-                        http_method = Some(nv.path.get_ident().unwrap().to_string());
-                        path_suffix = Some(s.value());
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                            nv.value,
-                            "Expected string literal for HTTP path",
-                        ));
-                    }
-                }
+                syn::Meta::NameValue(nv) => {
+                    if let Some(method) = parse_http_method(&nv.path) {
+                        if http_method.is_some() {
+                            return Err(syn::Error::new_spanned(
+                                nv,
+                                "Endpoint must specify only one HTTP method",
+                            ));
+                        }
 
-                syn::Meta::NameValue(nv) if nv.path.is_ident("auth") => {
-                    if let syn::Expr::Lit(syn::ExprLit {
-                        lit: syn::Lit::Bool(b),
-                        ..
-                    }) = nv.value
-                    {
-                        auth_details = Some(b.value);
-                    } else {
-                        return Err(syn::Error::new_spanned(
-                            nv.value,
-                            "Expected boolean literal for auth",
-                        ));
-                    }
-                }
-
-                syn::Meta::NameValue(nv) if nv.path.is_ident("cors") => {
-                    if let syn::Expr::Array(arr) = nv.value {
-                        for elem in arr.elems {
-                            if let syn::Expr::Lit(syn::ExprLit {
-                                lit: syn::Lit::Str(s),
-                                ..
-                            }) = elem
-                            {
-                                cors_options.push(s.value());
-                            } else {
-                                return Err(syn::Error::new_spanned(
-                                    elem,
-                                    "Expected string literal in CORS array",
-                                ));
+                        if let syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Str(s),
+                            ..
+                        }) = nv.value
+                        {
+                            http_method = Some(method);
+                            path_suffix = Some(s.value());
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                nv.value,
+                                "Expected string literal for HTTP path",
+                            ));
+                        }
+                    } else if nv.path.is_ident("auth") {
+                        if let syn::Expr::Lit(syn::ExprLit {
+                            lit: syn::Lit::Bool(b),
+                            ..
+                        }) = nv.value
+                        {
+                            auth_details = Some(b.value);
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                nv.value,
+                                "Expected boolean literal for auth",
+                            ));
+                        }
+                    } else if nv.path.is_ident("cors") {
+                        if let syn::Expr::Array(arr) = nv.value {
+                            for elem in arr.elems {
+                                if let syn::Expr::Lit(syn::ExprLit {
+                                    lit: syn::Lit::Str(s),
+                                    ..
+                                }) = elem
+                                {
+                                    cors_options.push(s.value());
+                                } else {
+                                    return Err(syn::Error::new_spanned(
+                                        elem,
+                                        "Expected string literal in CORS array",
+                                    ));
+                                }
                             }
+                        } else {
+                            return Err(syn::Error::new_spanned(
+                                nv.value,
+                                "Expected array for cors",
+                            ));
                         }
                     } else {
-                        return Err(syn::Error::new_spanned(nv.value, "Expected array for cors"));
+                        return Err(syn::Error::new_spanned(
+                            nv,
+                            "Unexpected attribute item in #[endpoint]",
+                        ));
                     }
                 }
 
@@ -169,4 +186,70 @@ pub fn extract_http_endpoints(
     }
 
     Ok(endpoints)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::extract_http_endpoints;
+
+    fn endpoint_attrs(item: syn::TraitItemFn) -> Vec<syn::Attribute> {
+        item.attrs
+    }
+
+    #[test]
+    fn extracts_all_standard_http_methods() {
+        let attrs = endpoint_attrs(syn::parse_quote! {
+            #[endpoint(get = "/get")]
+            #[endpoint(head = "/head")]
+            #[endpoint(post = "/post")]
+            #[endpoint(put = "/put")]
+            #[endpoint(delete = "/delete")]
+            #[endpoint(connect = "/connect")]
+            #[endpoint(options = "/options")]
+            #[endpoint(trace = "/trace")]
+            #[endpoint(patch = "/patch")]
+            fn all_methods(&self);
+        });
+
+        let endpoints = extract_http_endpoints(&attrs).expect("all standard methods should parse");
+
+        let methods = endpoints
+            .iter()
+            .map(|endpoint| endpoint.http_method.as_str())
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            methods,
+            vec![
+                "get", "head", "post", "put", "delete", "connect", "options", "trace", "patch"
+            ]
+        );
+    }
+
+    #[test]
+    fn rejects_multiple_http_methods_in_one_endpoint_attribute() {
+        let attrs = endpoint_attrs(syn::parse_quote! {
+            #[endpoint(get = "/get", post = "/post")]
+            fn duplicate_method(&self);
+        });
+
+        let err = extract_http_endpoints(&attrs).expect_err("multiple methods should fail");
+
+        assert_eq!(
+            err.to_string(),
+            "Endpoint must specify only one HTTP method"
+        );
+    }
+
+    #[test]
+    fn rejects_unknown_http_method_keys() {
+        let attrs = endpoint_attrs(syn::parse_quote! {
+            #[endpoint(propfind = "/resource")]
+            fn unknown_method(&self);
+        });
+
+        let err = extract_http_endpoints(&attrs).expect_err("unknown methods should fail");
+
+        assert_eq!(err.to_string(), "Unexpected attribute item in #[endpoint]");
+    }
 }

@@ -292,6 +292,30 @@ test('Agent with with http endpoint path variables referring to Principal is rej
   );
 });
 
+test('Agent endpoint without an HTTP method is rejected during decoration', async () => {
+  await expect(async () => {
+    await import('./agentWithInvalidHttpEndpoint3');
+  }).rejects.toThrowError(
+    'Endpoint decorator must specify one HTTP method (get/head/post/put/delete/connect/options/trace/patch/custom) for method missingMethod',
+  );
+});
+
+test('Agent endpoint with multiple HTTP methods is rejected during decoration', async () => {
+  await expect(async () => {
+    await import('./agentWithInvalidHttpEndpoint4');
+  }).rejects.toThrowError(
+    'Endpoint decorator must specify only one HTTP method for method duplicateMethod. Provided: get, post',
+  );
+});
+
+test('Agent endpoint with malformed custom HTTP method config is rejected during decoration', async () => {
+  await expect(async () => {
+    await import('./agentWithInvalidHttpEndpoint5');
+  }).rejects.toThrowError(
+    'Custom endpoint must specify both method and path for method customWithoutPath',
+  );
+});
+
 function getAnalysedTypeInFun1(
   parameterName: string,
 ): Either.Either<AnalysedType.AnalysedType, string> {

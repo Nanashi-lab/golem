@@ -81,3 +81,37 @@ fn split_path_and_query(path_with_query: &str) -> PathAndQuery {
         query: parts.next().map(|q| q.to_string()),
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::get_http_endpoint_details;
+    use crate::golem_agentic::golem::agent::common::HttpMethod;
+    use test_r::test;
+
+    fn http_method(method: &str) -> HttpMethod {
+        get_http_endpoint_details(method, "/resource", None, vec![], vec![])
+            .expect("endpoint details should parse")
+            .http_method
+    }
+
+    #[test]
+    fn supports_all_standard_http_methods() {
+        assert!(matches!(http_method("get"), HttpMethod::Get));
+        assert!(matches!(http_method("head"), HttpMethod::Head));
+        assert!(matches!(http_method("post"), HttpMethod::Post));
+        assert!(matches!(http_method("put"), HttpMethod::Put));
+        assert!(matches!(http_method("delete"), HttpMethod::Delete));
+        assert!(matches!(http_method("connect"), HttpMethod::Connect));
+        assert!(matches!(http_method("options"), HttpMethod::Options));
+        assert!(matches!(http_method("trace"), HttpMethod::Trace));
+        assert!(matches!(http_method("patch"), HttpMethod::Patch));
+    }
+
+    #[test]
+    fn rejects_unknown_http_methods() {
+        let err = get_http_endpoint_details("propfind", "/resource", None, vec![], vec![])
+            .expect_err("unknown methods should fail");
+
+        assert_eq!(err, "Unsupported HTTP method: propfind");
+    }
+}

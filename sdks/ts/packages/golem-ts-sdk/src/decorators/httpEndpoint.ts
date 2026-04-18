@@ -27,9 +27,14 @@ import { parseQuery } from '../internal/http/query';
 
 export type EndpointDecoratorOptions = {
   get?: string;
+  head?: string;
   post?: string;
   put?: string;
   delete?: string;
+  connect?: string;
+  options?: string;
+  trace?: string;
+  patch?: string;
   custom?: {
     method: string;
     path: string;
@@ -63,14 +68,17 @@ export type EndpointDecoratorOptions = {
  * ```ts
  * @endpoint({ get: '/weather/{city}' })
  * @endpoint({ post: '/weather', headers: { 'X-City': 'city' } })
+ * @endpoint({ patch: '/weather/{city}' })
  * getWeather(city: string): WeatherReport { ... }
  * ```
  *
  * ### HTTP Methods
- * - Specify **one** of `get`, `post`, `put`, `delete`, or `custom`.
+ * - Specify **one** of `get`, `head`, `post`, `put`, `delete`, `connect`, `options`, `trace`, `patch`, or `custom`.
  * - The value of the option is the endpoint path.
  * - Examples:
  *   - Simple GET: `{ get: '/status' }`
+ *   - PATCH with path variables: `{ patch: '/rooms/{roomId}' }`
+ *   - Non-standard method: `{ custom: { method: 'PROPFIND', path: '/resources/{id}' } }`
  *   - GET with path variables: `{ get: '/rooms/{roomId}/messages/{messageId}' }`
  * - Path variables must exactly match method parameters.
  * - No "foreign" path variables are allowed.
@@ -119,6 +127,7 @@ export type EndpointDecoratorOptions = {
  * ### Errors / Validation
  * This decorator will throw an error if:
  * - No HTTP method is specified.
+ * - More than one HTTP method is specified.
  * - Path does not start with `/`.
  * - Path contains query parameters (`?`) when using the path property.
  * - Path or header variables do not exist on the method parameters.
@@ -141,13 +150,24 @@ export function endpoint(opts: EndpointDecoratorOptions) {
       );
     }
 
-    const methods = ['get', 'post', 'put', 'delete', 'custom'] as const;
+    const methods = [
+      'get',
+      'head',
+      'post',
+      'put',
+      'delete',
+      'connect',
+      'options',
+      'trace',
+      'patch',
+      'custom',
+    ] as const;
 
     const providedMethods = methods.filter((m) => (m === 'custom' ? !!opts.custom : !!opts[m]));
 
     if (providedMethods.length === 0) {
       throw new Error(
-        `Endpoint decorator must specify one HTTP method (get/post/put/delete/custom) for method ${methodName}`,
+        `Endpoint decorator must specify one HTTP method (${methods.join('/')}) for method ${methodName}`,
       );
     }
 
